@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔌 Vanilla 3000 Smart Energy Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.x/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --warning-color: #ed8936;
+            --info-color: #4299e1;
+        }
+
+        [data-theme="dark"] {
+            --primary-gradient: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            --card-bg: rgba(45, 55, 72, 0.95);
+            --text-primary: #f7fafc;
+            --text-secondary: #a0aec0;
+            --border-color: #4a5568;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            padding: 1rem;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 20px 40px var(--shadow-color);
+            backdrop-filter: blur(10px);
+            min-height: calc(100vh - 2rem);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .header-btn {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .header-controls {
+                position: static;
+                justify-content: center;
+                margin-top: 1rem;
+            }
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-unit {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-width: 120px;
+        }
+
+        .btn-primary { background: var(--primary-gradient); color: white; }
+        .btn-success { background: linear-gradient(135deg, #48bb78, #38a169); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #f56565, #e53e3e); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #ed8936, #dd6b20); color: white; }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn.loading {
+            pointer-events: none;
+        }
+
+        .btn.success {
+            background: var(--success-color) !important;
+        }
+
+        .btn.error {
+            background: var(--error-color) !important;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-group .btn {
+            flex: 1;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .input-group .input-field {
+            flex: 1;
+        }
+
+        .connection-status {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+        }
+
+        .connection-status.connected {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .connection-status.connecting {
+            background: rgba(237, 137, 54, 0.1);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(245, 101, 101, 0.1);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.green { background: var(--success-color); }
+        .status-dot.yellow { background: var(--warning-color); }
+        .status-dot.red { background: var(--error-color); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 1rem 0;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .chart-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-btn.active,
+        .chart-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .notifications-panel {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid;
+        }
+
+        .notification-info {
+            background: rgba(66, 153, 225, 0.1);
+            border-color: var(--info-color);
+            color: var(--info-color);
+        }
+
+        .notification-success {
+            background: rgba(72, 187, 120, 0.1);
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .notification-warning {
+            background: rgba(237, 137, 54, 0.1);
+            border-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .notification-error {
+            background: rgba(245, 101, 101, 0.1);
+            border-color: var(--error-color);
+            color: var(--error-color);
+        }
+
+        .usage-tracker {
+            text-align: center;
+            padding: 2rem;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .usage-time {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .bluetooth-warning {
+            background: rgba(245, 101, 101, 0.1);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .bluetooth-warning.hidden {
+            display: none;
+        }
+
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .schedule-delete {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .power-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .power-alert.show {
+            display: flex;
+            animation: pulse 1s infinite;
+        }
+
+        .tips-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .tips-list li {
+            padding: 0.75rem;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--info-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🔌 Vanilla 3000</h1>
+            <p>Smart Energy Monitor & Control Panel</p>
+            <div class="header-controls">
+                <button class="header-btn" onclick="toggleDarkMode()" id="themeToggle">🌙</button>
+                <button class="header-btn" onclick="toggleFullscreen()" id="fullscreenToggle">⛶</button>
+            </div>
+        </div>
+
+        <!-- Bluetooth Warning -->
+        <div id="bluetoothWarning" class="bluetooth-warning hidden">
+            Web Bluetooth is not supported in this browser or the page is not served over HTTPS. Please use Chrome, Edge, or Opera with HTTPS.
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Left Column: Controls -->
+            <div class="left-column">
+                <!-- Bluetooth Connection -->
+                <div class="section" id="bleConfigSection">
+                    <div class="section-title">📡 Bluetooth (BLE) Control (Local)</div>
+                    <div class="config-info">
+                        Connect directly to your device's Bluetooth Low Energy (BLE) module for local, low-latency control.
+                        <strong>Requires a browser that supports Web Bluetooth (Chrome, Edge, Opera).</strong>
+                    </div>
+                    
+                    <div id="bleStatus" class="connection-status disconnected">
+                        <div id="bleStatusDot" class="status-dot red"></div>
+                        <span id="bleStatusText">BLE Disconnected</span>
+                    </div>
+
+                    <div class="control-group">
+                        <button class="btn btn-primary" onclick="connectBLE()" id="connectBLEBtn">Connect BLE Device</button>
+                        <button class="btn btn-danger" onclick="disconnectBLE()" id="disconnectBLEBtn" style="display: none;">Disconnect BLE</button>
+                    </div>
+                </div>
+
+                <!-- Energy Rate Configuration -->
+                <div class="section">
+                    <div class="section-title">⚡ Energy Rate Configuration</div>
+                    <div class="input-group">
+                        <input type="number" id="kwhRateInput" class="input-field" placeholder="kWh Rate (e.g., 10.50)" min="0" step="0.01">
+                        <button class="btn btn-primary" onclick="setKwhRate()" id="setKwhRateBtn">Set Rate</button>
+                    </div>
+                </div>
+
+                <!-- Device Control -->
+                <div class="section">
+                    <div class="section-title">🎛️ Device Control</div>
+                    <div class="control-group">
+                        <button class="btn btn-success" onclick="sendCommand('ON')" id="onBtn">Turn ON</button>
+                        <button class="btn btn-danger" onclick="sendCommand('OFF')" id="offBtn">Turn OFF</button>
+                    </div>
+                </div>
+
+                <!-- Budget Control -->
+                <div class="section">
+                    <div class="section-title">💰 Budget Control</div>
+                    <div class="input-group">
+                        <input type="number" id="budgetInput" class="input-field" placeholder="Amount in ₱" min="0" step="0.01">
+                        <button class="btn btn-primary" onclick="setBudget()" id="budgetBtn">Set Budget</button>
+                    </div>
+                </div>
+
+                <!-- Timer Control -->
+                <div class="section">
+                    <div class="section-title">⏰ Timer Control</div>
+                    <div class="input-group">
+                        <input type="number" id="timerInput" class="input-field" placeholder="Minutes" min="0" step="1">
+                        <button class="btn btn-primary" onclick="setTimer()" id="timerBtn">Set Timer</button>
+                    </div>
+                </div>
+
+                <!-- Schedule Control -->
+                <div class="section">
+                    <div class="section-title">📅 Schedule Control</div>
+                    <div class="input-group">
+                        <input type="time" id="scheduleOnTime" class="input-field" placeholder="Start Time">
+                        <input type="time" id="scheduleOffTime" class="input-field" placeholder="End Time">
+                        <button class="btn btn-primary" onclick="addSchedule()" id="scheduleBtn">Add Schedule</button>
+                    </div>
+                    <div id="scheduleList"></div>
+                </div>
+
+                <!-- Reset Functions -->
+                <div class="section">
+                    <div class="section-title">🔄 Reset Functions</div>
+                    <div class="control-group">
+                        <button class="btn btn-warning" onclick="sendCommand('RESET_COST')" id="resetCostBtn">Reset Cost</button>
+                        <button class="btn btn-warning" onclick="sendCommand('RESET_KWH')" id="resetKwhBtn">Reset kWh</button>
+                    </div>
+                    <div class="control-group">
+                        <button class="btn btn-warning" onclick="sendCommand('RESET_TIME')" id="resetTimeBtn">Reset Time</button>
+                        <button class="btn btn-danger" onclick="sendCommand('RESET_ALL')" id="resetAllBtn">Reset ALL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Data Display -->
+            <div class="right-column">
+                <!-- Live Metrics -->
+                <div class="status-panel">
+                    <div class="metric-card">
+                        <div class="metric-label">Voltage</div>
+                        <div class="metric-value" id="voltage">0.0</div>
+                        <div class="metric-unit">V</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Current</div>
+                        <div class="metric-value" id="current">0.00</div>
+                        <div class="metric-unit">A</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Power</div>
+                        <div class="metric-value" id="power">0.0</div>
+                        <div class="metric-unit">W</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total kWh</div>
+                        <div class="metric-value" id="energy">0.000</div>
+                        <div class="metric-unit">kWh</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Cost</div>
+                        <div class="metric-value" id="cost">₱0.00</div>
+                        <div class="metric-unit">PHP</div>
+                    </div>
+                </div>
+
+                <!-- Usage Time Tracker -->
+                <div class="usage-tracker">
+                    <div class="usage-time" id="usageTime">00:00:00</div>
+                    <div id="usageStatus">Active when power > 5W</div>
+                </div>
+
+                <!-- Energy Usage Chart -->
+                <div class="section">
+                    <div class="section-title">📊 Energy Usage Chart</div>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" onclick="changeChartPeriod('24h')" id="chart24h">Last 24 Hours</button>
+                        <button class="chart-btn" onclick="changeChartPeriod('7d')" id="chart7d">Last 7 Days</button>
+                        <button class="chart-btn" onclick="changeChartPeriod('30d')" id="chart30d">Last 30 Days</button>
+                        <button class="chart-btn" onclick="toggleChartType()" id="chartType">Power (W)</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Live Notifications -->
+                <div class="section">
+                    <div class="section-title">🔔 Live Notifications</div>
+                    <div class="notifications-panel" id="notificationsList"></div>
+                </div>
+
+                <!-- Energy Efficiency Tips -->
+                <div class="section">
+                    <div class="section-title">💡 Energy Efficiency Tips</div>
+                    <ul class="tips-list" id="tipsList">
+                        <li>Connect to your BLE device to start monitoring energy usage.</li>
+                        <li>Set a budget to track and control your energy costs.</li>
+                        <li>Use schedules to automatically turn devices on/off at specific times.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Power Alert Overlays -->
+    <div id="powerOutageAlert" class="power-alert">
+        ⚡ POWER OUTAGE!<br>Device monitoring interrupted
+    </div>
+    <div id="powerRestoredAlert" class="power-alert" style="background: rgba(72, 187, 120, 0.9);">
+        ✅ POWER RESTORED!<br>Device connection restored
+    </div>
+
+    <script>
+        // Global Variables
+        let isBLEConnected = false;
+        let bleDevice = null;
+        let bleRxCharacteristic = null;
+        let bleTxCharacteristic = null;
+        let chart = null;
+        let isDarkMode = localStorage.getItem('darkMode') === 'true';
+        let currentChartPeriod = '24h';
+        let currentChartType = 'power';
+        let usageStartTime = null;
+        let currentPower = 0;
+        let schedules = JSON.parse(localStorage.getItem('schedules') || '[]');
+        
+        // BLE UUIDs (Multiple service support)
+        const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e'; // Nordic UART Service
+        const BLE_SERVICE_UUID_HM10 = '0000ffe0-0000-1000-8000-00805f9b34fb'; // HM-10 default service
+        const BLE_CHARACTERISTIC_UUID_RX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // Nordic RX
+        const BLE_CHARACTERISTIC_UUID_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // Nordic TX
+        const BLE_CHARACTERISTIC_UUID_HM10 = '0000ffe1-0000-1000-8000-00805f9b34fb'; // HM-10 default characteristic
+        
+        // Chart Data Storage
+        const chartData = {
+            power: JSON.parse(localStorage.getItem('chartData_power') || '[]'),
+            cost: JSON.parse(localStorage.getItem('chartData_cost') || '[]'),
+            kwh: JSON.parse(localStorage.getItem('chartData_kwh') || '[]'),
+            labels: JSON.parse(localStorage.getItem('chartData_labels') || '[]')
+        };
+
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Vanilla 3000 Smart Energy Monitor initialized');
+            checkBluetoothSupport();
+            initializeTheme();
+            initializeChart();
+            loadSavedSettings();
+            updateBLEConnectionStatus();
+            renderSchedules();
+            startUsageTimer();
+            
+            // Load saved kWh rate
+            const savedRate = localStorage.getItem('kwhRate');
+            if (savedRate) {
+                document.getElementById('kwhRateInput').value = savedRate;
+            }
+            
+            addLiveNotification('System ready. Connect to BLE device to start monitoring.', 'info');
+        });
+
+        // Theme Management
+        function initializeTheme() {
+            if (isDarkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('darkMode', isDarkMode);
+            document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+            document.getElementById('themeToggle').textContent = isDarkMode ? '☀️' : '🌙';
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Bluetooth Support Check
+        function checkBluetoothSupport() {
+            const warning = document.getElementById('bluetoothWarning');
+            const connectBtn = document.getElementById('connectBLEBtn');
+            
+            if (!navigator.bluetooth) {
+                warning.classList.remove('hidden');
+                connectBtn.disabled = true;
+                console.warn('Web Bluetooth API not supported in this browser');
+                warning.textContent = 'Web Bluetooth API is not supported in this browser. Please use Chrome, Edge, or Opera.';
+            } else if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && location.hostname !== '0.0.0.0') {
+                warning.classList.remove('hidden');
+                connectBtn.disabled = true;
+                console.warn('Web Bluetooth requires HTTPS');
+                warning.textContent = 'Web Bluetooth requires HTTPS. Please access the app via https://localhost:5000';
+            } else {
+                warning.classList.add('hidden');
+                connectBtn.disabled = false;
+                console.log('Web Bluetooth is supported and ready');
+            }
+        }
+
+        // BLE Connection Functions
+        async function connectBLE() {
+            if (!navigator.bluetooth) {
+                showNotification('Web Bluetooth is not supported', 'error');
+                return;
+            }
+
+            try {
+                setButtonLoading('connectBLEBtn', true, 'Connecting...');
+                updateBLEConnectionStatus('connecting');
+                addLiveNotification('Searching for BLE device...', 'info');
+
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'HM-' },
+                        { namePrefix: 'Vanilla' },
+                        { namePrefix: 'Energy' },
+                        { namePrefix: 'ESP32' },
+                        { namePrefix: 'Arduino' },
+                        { namePrefix: 'MLT-BT' },
+                        { namePrefix: 'HC-' },
+                        { namePrefix: 'AT-09' }
+                    ],
+                    optionalServices: [BLE_SERVICE_UUID, '0000ffe0-0000-1000-8000-00805f9b34fb']
+                });
+
+                console.log('Selected device:', bleDevice.name || 'Unknown Device');
+                bleDevice.addEventListener('gattserverdisconnected', onBLEDisconnected);
+
+                const server = await bleDevice.gatt.connect();
+                
+                let service, rxChar, txChar;
+                
+                // Try Nordic UART Service first
+                try {
+                    service = await server.getPrimaryService(BLE_SERVICE_UUID);
+                    bleRxCharacteristic = await service.getCharacteristic(BLE_CHARACTERISTIC_UUID_RX);
+                    bleTxCharacteristic = await service.getCharacteristic(BLE_CHARACTERISTIC_UUID_TX);
+                    console.log('Connected using Nordic UART Service');
+                } catch (error) {
+                    console.log('Nordic UART Service not available, trying HM-10 service...');
+                    try {
+                        service = await server.getPrimaryService(BLE_SERVICE_UUID_HM10);
+                        bleRxCharacteristic = await service.getCharacteristic(BLE_CHARACTERISTIC_UUID_HM10);
+                        bleTxCharacteristic = bleRxCharacteristic; // HM-10 uses same characteristic for both
+                        console.log('Connected using HM-10 service');
+                    } catch (error2) {
+                        throw new Error('No compatible service found on device');
+                    }
+                }
+
+                await bleTxCharacteristic.startNotifications();
+                bleTxCharacteristic.addEventListener('characteristicvaluechanged', onBLECharacteristicValueChanged);
+
+                isBLEConnected = true;
+                updateBLEConnectionStatus('connected');
+                setButtonSuccess('connectBLEBtn', 'Connected');
+                document.getElementById('disconnectBLEBtn').style.display = 'inline-flex';
+                addLiveNotification(`✅ BLE connected to ${bleDevice.name || 'device'}`, 'success');
+                generateEfficiencyTips();
+
+            } catch (error) {
+                console.error('BLE connection failed:', error);
+                setButtonError('connectBLEBtn', 'Connect Failed');
+                updateBLEConnectionStatus('disconnected');
+                
+                let errorMessage = 'Connection failed: ';
+                if (error.name === 'NotFoundError') {
+                    errorMessage += 'No device selected';
+                } else if (error.name === 'SecurityError') {
+                    errorMessage += 'Security error - check permissions';
+                } else if (error.name === 'NetworkError') {
+                    errorMessage += 'Device out of range';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                addLiveNotification(errorMessage, 'error');
+            }
+        }
+
+        async function disconnectBLE() {
+            if (bleDevice && bleDevice.gatt.connected) {
+                await bleDevice.gatt.disconnect();
+            }
+            onBLEDisconnected();
+        }
+
+        function onBLEDisconnected() {
+            console.log('BLE device disconnected');
+            isBLEConnected = false;
+            bleDevice = null;
+            bleRxCharacteristic = null;
+            bleTxCharacteristic = null;
+            
+            updateBLEConnectionStatus('disconnected');
+            document.getElementById('connectBLEBtn').style.display = 'inline-flex';
+            document.getElementById('disconnectBLEBtn').style.display = 'none';
+            resetButtonState('connectBLEBtn', 'Connect BLE Device');
+            addLiveNotification('🔴 BLE device disconnected', 'warning');
+        }
+
+        function updateBLEConnectionStatus(status = null) {
+            const statusElement = document.getElementById('bleStatus');
+            const statusDot = document.getElementById('bleStatusDot');
+            const statusText = document.getElementById('bleStatusText');
+            const controlButtons = ['onBtn', 'offBtn', 'budgetBtn', 'timerBtn', 'scheduleBtn', 'setKwhRateBtn', 'resetCostBtn', 'resetKwhBtn', 'resetTimeBtn', 'resetAllBtn'];
+
+            if (status === null) {
+                status = isBLEConnected ? 'connected' : 'disconnected';
+            }
+
+            statusElement.className = `connection-status ${status}`;
+            
+            switch (status) {
+                case 'connected':
+                    statusDot.className = 'status-dot green';
+                    statusText.textContent = 'BLE Connected';
+                    controlButtons.forEach(id => document.getElementById(id).disabled = false);
+                    break;
+                case 'connecting':
+                    statusDot.className = 'status-dot yellow';
+                    statusText.textContent = 'BLE Connecting...';
+                    controlButtons.forEach(id => document.getElementById(id).disabled = true);
+                    break;
+                default:
+                    statusDot.className = 'status-dot red';
+                    statusText.textContent = 'BLE Disconnected';
+                    controlButtons.forEach(id => document.getElementById(id).disabled = true);
+            }
+        }
+
+        // BLE Data Handling
+        function onBLECharacteristicValueChanged(event) {
+            const decoder = new TextDecoder();
+            const data = decoder.decode(event.target.value).trim();
+            console.log('Received data:', data);
+
+            if (data.startsWith('ALERT:')) {
+                handleAlert(data);
+            } else if (data.includes('V:') && data.includes('I:')) {
+                parseSensorData(data);
+            } else {
+                addLiveNotification(`Unrecognized data: ${data}`, 'warning');
+            }
+        }
+
+        function parseSensorData(data) {
+            try {
+                // Parse format: V:230.5,I:1.23,P:283.0,KWH:1.456,COST:15.23,RUNTIME:3.45,STATUS:ON
+                const metrics = {};
+                const pairs = data.split(',');
+                
+                pairs.forEach(pair => {
+                    const [key, value] = pair.split(':');
+                    if (key && value) {
+                        switch (key.trim()) {
+                            case 'V':
+                                metrics.voltage = parseFloat(value);
+                                break;
+                            case 'I':
+                                metrics.current = parseFloat(value);
+                                break;
+                            case 'P':
+                                metrics.power = parseFloat(value);
+                                break;
+                            case 'KWH':
+                                metrics.kwh = parseFloat(value);
+                                break;
+                            case 'COST':
+                                metrics.cost = parseFloat(value);
+                                break;
+                            case 'RUNTIME':
+                                metrics.runtime = parseFloat(value);
+                                break;
+                            case 'STATUS':
+                                metrics.status = value.trim();
+                                break;
+                        }
+                    }
+                });
+
+                updateMetrics(metrics);
+                addDataPoint(metrics.power || 0, metrics.cost || 0, metrics.kwh || 0);
+                generateEfficiencyTips();
+
+            } catch (error) {
+                console.error('Error parsing sensor data:', error);
+                addLiveNotification('Error parsing device data', 'error');
+            }
+        }
+
+        function handleAlert(alertData) {
+            // Parse format: ALERT:TYPE|MESSAGE
+            const alertParts = alertData.substring(6).split('|');
+            const alertType = alertParts[0];
+            const alertMessage = alertParts[1] || 'Unknown alert';
+
+            if (alertType === 'POWER_OUTAGE') {
+                showPowerAlert('outage');
+            } else if (alertType === 'POWER_RESTORED') {
+                showPowerAlert('restored');
+            }
+
+            addLiveNotification(`Alert: ${alertMessage}`, 'warning');
+        }
+
+        function updateMetrics(data) {
+            if (data.voltage !== undefined) {
+                document.getElementById('voltage').textContent = data.voltage.toFixed(1);
+            }
+            if (data.current !== undefined) {
+                document.getElementById('current').textContent = data.current.toFixed(2);
+            }
+            if (data.power !== undefined) {
+                document.getElementById('power').textContent = data.power.toFixed(1);
+                currentPower = data.power;
+            }
+            if (data.kwh !== undefined) {
+                document.getElementById('energy').textContent = data.kwh.toFixed(3);
+            }
+            if (data.cost !== undefined) {
+                document.getElementById('cost').textContent = `₱${data.cost.toFixed(2)}`;
+            }
+            if (data.status !== undefined) {
+                document.getElementById('usageStatus').textContent = `Device: ${data.status}`;
+            }
+        }
+
+        // Command Sending
+        async function sendCommand(action, value = null) {
+            if (!isBLEConnected || !bleRxCharacteristic) {
+                addLiveNotification('Not connected to BLE device', 'error');
+                return;
+            }
+
+            try {
+                let command = action;
+                if (value !== null) {
+                    command += `:${value}`;
+                }
+                command += '\n';
+
+                const encoder = new TextEncoder();
+                const data = encoder.encode(command);
+
+                if (bleRxCharacteristic.properties.writeWithoutResponse) {
+                    await bleRxCharacteristic.writeValueWithoutResponse(data);
+                } else {
+                    await bleRxCharacteristic.writeValue(data);
+                }
+
+                console.log('Command sent:', command.trim());
+                addLiveNotification(`Command sent: ${command.trim()}`, 'success');
+
+            } catch (error) {
+                console.error('Failed to send command:', error);
+                addLiveNotification('Failed to send command', 'error');
+            }
+        }
+
+        // Configuration Functions
+        function setKwhRate() {
+            const rate = document.getElementById('kwhRateInput').value;
+            if (rate && rate > 0) {
+                sendCommand('SET_KWH_RATE', rate);
+                localStorage.setItem('kwhRate', rate);
+                addLiveNotification(`kWh rate set to ₱${rate}`, 'success');
+            } else {
+                addLiveNotification('Please enter a valid rate', 'error');
+            }
+        }
+
+        function setBudget() {
+            const budget = document.getElementById('budgetInput').value;
+            if (budget && budget > 0) {
+                sendCommand('SET_BUDGET', budget);
+                document.getElementById('budgetInput').value = '';
+                addLiveNotification(`Budget set to ₱${budget}`, 'success');
+            } else {
+                addLiveNotification('Please enter a valid budget amount', 'error');
+            }
+        }
+
+        function setTimer() {
+            const minutes = document.getElementById('timerInput').value;
+            if (minutes && minutes > 0) {
+                sendCommand('SET_TIMER', minutes);
+                document.getElementById('timerInput').value = '';
+                addLiveNotification(`Timer set to ${minutes} minutes`, 'success');
+            } else {
+                addLiveNotification('Please enter valid minutes', 'error');
+            }
+        }
+
+        function addSchedule() {
+            const onTime = document.getElementById('scheduleOnTime').value;
+            const offTime = document.getElementById('scheduleOffTime').value;
+            
+            if (onTime && offTime) {
+                const scheduleId = Date.now();
+                const onTimeFormatted = onTime.replace(':', '');
+                const offTimeFormatted = offTime.replace(':', '');
+                const scheduleValue = `${scheduleId},${onTimeFormatted},${offTimeFormatted}`;
+                
+                sendCommand('ADD_SCHEDULE', scheduleValue);
+                
+                schedules.push({
+                    id: scheduleId,
+                    onTime: onTime,
+                    offTime: offTime
+                });
+                
+                localStorage.setItem('schedules', JSON.stringify(schedules));
+                renderSchedules();
+                
+                document.getElementById('scheduleOnTime').value = '';
+                document.getElementById('scheduleOffTime').value = '';
+                addLiveNotification(`Schedule added: ${onTime} - ${offTime}`, 'success');
+            } else {
+                addLiveNotification('Please enter both start and end times', 'error');
+            }
+        }
+
+        function deleteSchedule(scheduleId) {
+            sendCommand('DELETE_SCHEDULE', scheduleId);
+            schedules = schedules.filter(s => s.id !== scheduleId);
+            localStorage.setItem('schedules', JSON.stringify(schedules));
+            renderSchedules();
+            addLiveNotification('Schedule deleted', 'success');
+        }
+
+        function renderSchedules() {
+            const scheduleList = document.getElementById('scheduleList');
+            scheduleList.innerHTML = '';
+            
+            schedules.forEach(schedule => {
+                const item = document.createElement('div');
+                item.className = 'schedule-item';
+                item.innerHTML = `
+                    <span>${schedule.onTime} - ${schedule.offTime}</span>
+                    <button class="schedule-delete" onclick="deleteSchedule(${schedule.id})">Delete</button>
+                `;
+                scheduleList.appendChild(item);
+            });
+        }
+
+        // Chart Functions
+        function initializeChart() {
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Power Consumption',
+                        data: chartData.power,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Peak Usage',
+                        data: [],
+                        borderColor: '#f56565',
+                        backgroundColor: 'rgba(245, 101, 101, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Average',
+                        data: [],
+                        borderColor: '#48bb78',
+                        backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Power (W)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        function addDataPoint(power, cost, kwh) {
+            const now = new Date();
+            
+            chartData.labels.push(now);
+            chartData.power.push(power);
+            chartData.cost.push(cost);
+            chartData.kwh.push(kwh);
+            
+            // Keep only last 1440 data points (24 hours at 1-minute intervals)
+            if (chartData.labels.length > 1440) {
+                chartData.labels.shift();
+                chartData.power.shift();
+                chartData.cost.shift();
+                chartData.kwh.shift();
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('chartData_labels', JSON.stringify(chartData.labels));
+            localStorage.setItem('chartData_power', JSON.stringify(chartData.power));
+            localStorage.setItem('chartData_cost', JSON.stringify(chartData.cost));
+            localStorage.setItem('chartData_kwh', JSON.stringify(chartData.kwh));
+            
+            updateChart();
+        }
+
+        function updateChart() {
+            if (chart) {
+                const data = chartData[currentChartType] || chartData.power;
+                chart.data.labels = chartData.labels;
+                chart.data.datasets[0].data = data;
+                chart.update('none');
+            }
+        }
+
+        function changeChartPeriod(period) {
+            currentChartPeriod = period;
+            
+            // Update button states
+            document.querySelectorAll('.chart-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`chart${period}`).classList.add('active');
+            
+            // Update chart time unit
+            let timeUnit = 'hour';
+            if (period === '7d') timeUnit = 'day';
+            if (period === '30d') timeUnit = 'week';
+            
+            chart.options.scales.x.time.unit = timeUnit;
+            chart.update();
+        }
+
+        function toggleChartType() {
+            const types = ['power', 'cost', 'kwh'];
+            const labels = ['Power (W)', 'Cost (₱)', 'Energy (kWh)'];
+            
+            const currentIndex = types.indexOf(currentChartType);
+            const nextIndex = (currentIndex + 1) % types.length;
+            
+            currentChartType = types[nextIndex];
+            document.getElementById('chartType').textContent = labels[nextIndex];
+            
+            chart.options.scales.y.title.text = labels[nextIndex];
+            updateChart();
+        }
+
+        // Usage Timer
+        function startUsageTimer() {
+            setInterval(() => {
+                if (currentPower > 5) {
+                    if (!usageStartTime) {
+                        usageStartTime = Date.now();
+                    }
+                    
+                    const elapsed = Date.now() - usageStartTime;
+                    const hours = Math.floor(elapsed / 3600000);
+                    const minutes = Math.floor((elapsed % 3600000) / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    
+                    document.getElementById('usageTime').textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    usageStartTime = null;
+                }
+            }, 1000);
+        }
+
+        // Notifications
+        function addLiveNotification(message, type) {
+            const notificationsList = document.getElementById('notificationsList');
+            const notification = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `<strong>${timestamp}</strong> - ${message}`;
+            
+            notificationsList.insertBefore(notification, notificationsList.firstChild);
+            
+            // Keep only last 10 notifications
+            while (notificationsList.children.length > 10) {
+                notificationsList.removeChild(notificationsList.lastChild);
+            }
+        }
+
+        function showNotification(message, type) {
+            // This could be used for temporary toast notifications
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+
+        function showPowerAlert(type) {
+            const alertElement = document.getElementById(type === 'outage' ? 'powerOutageAlert' : 'powerRestoredAlert');
+            alertElement.classList.add('show');
+            
+            setTimeout(() => {
+                alertElement.classList.remove('show');
+            }, 3000);
+        }
+
+        // Efficiency Tips
+        function generateEfficiencyTips() {
+            const tipsList = document.getElementById('tipsList');
+            const tips = [];
+            
+            if (!isBLEConnected) {
+                tips.push('Connect to your BLE device to start monitoring energy usage.');
+            } else {
+                if (currentPower > 1000) {
+                    tips.push(`High power usage detected (${currentPower.toFixed(0)}W). Consider reducing load.`);
+                }
+                
+                if (currentPower > 0 && currentPower < 10) {
+                    tips.push('Detected potential phantom load. Unplug devices not in use!');
+                }
+                
+                if (schedules.length === 0) {
+                    tips.push('Set up schedules to automatically control your devices and save energy.');
+                }
+                
+                tips.push('Setting a budget helps track and manage your energy costs.');
+                tips.push('Use the timer function for temporary device control.');
+            }
+            
+            tipsList.innerHTML = '';
+            tips.forEach(tip => {
+                const li = document.createElement('li');
+                li.textContent = tip;
+                tipsList.appendChild(li);
+            });
+        }
+
+        // Button State Management
+        function setButtonLoading(buttonId, loading, text) {
+            const button = document.getElementById(buttonId);
+            if (loading) {
+                button.disabled = true;
+                button.classList.add('loading');
+                button.innerHTML = `<div class="spinner"></div> ${text}`;
+            } else {
+                button.disabled = false;
+                button.classList.remove('loading');
+            }
+        }
+
+        function setButtonSuccess(buttonId, text) {
+            const button = document.getElementById(buttonId);
+            button.classList.add('success');
+            const originalText = button.textContent;
+            button.textContent = text;
+            
+            setTimeout(() => {
+                button.classList.remove('success');
+                button.textContent = originalText;
+            }, 2000);
+        }
+
+        function setButtonError(buttonId, text) {
+            const button = document.getElementById(buttonId);
+            button.classList.add('error');
+            const originalText = button.textContent;
+            button.textContent = text;
+            
+            setTimeout(() => {
+                resetButtonState(buttonId, 'Connect BLE Device');
+            }, 3000);
+        }
+
+        function resetButtonState(buttonId, text) {
+            const button = document.getElementById(buttonId);
+            button.disabled = false;
+            button.classList.remove('loading', 'success', 'error');
+            button.textContent = text;
+        }
+
+        function loadSavedSettings() {
+            // This function can load any additional saved settings
+            console.log('Loading saved settings...');
+        }
+    </script>
+</body>
+</html>
