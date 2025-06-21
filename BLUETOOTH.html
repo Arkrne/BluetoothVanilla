@@ -746,8 +746,7 @@
                 <div class="section">
                     <div class="section-title">⚡ Energy Rate Configuration</div>
                     <div class="input-group">
-                        <input type="number" id="kwhRateInput" class="input-field" placeholder="kWh Rate (e.g., 10.50)" min="0" step="0.01">
-                        <button class="btn btn-primary" onclick="setKwhRate()" id="setKwhRateBtn">Set Rate</button>
+                        <input type="number" id="kwhRateInput" class="input-field" placeholder="kWh Rate (e.g., 10.50)" min="0" step="0.0001"> <button class="btn btn-primary" onclick="setKwhRate()" id="setKwhRateBtn">Set Rate</button>
                     </div>
                 </div>
 
@@ -774,8 +773,7 @@
                 <div class="section">
                     <div class="section-title">⏰ Timer Control</div>
                     <div class="input-group">
-                        <input type="number" id="timerInput" class="input-field" placeholder="Minutes" min="0" step="1">
-                        <button class="btn btn-primary" onclick="setTimer()" id="timerBtn">Set Timer</button>
+                        <input type="time" id="timerInput" class="input-field" value="00:00"> <button class="btn btn-primary" onclick="setTimer()" id="timerBtn">Set Timer</button>
                     </div>
                     <div id="remainingTimerDisplay" class="budget-time-display" style="display:none;">
                         <span class="label">Time Remaining</span>
@@ -1337,13 +1335,23 @@
         }
 
         function setTimer() {
-            const minutes = document.getElementById('timerInput').value;
-            if (minutes && minutes >= 0) { // Allow 0 to disable timer
-                sendCommand('SET_TIMER', minutes);
-                document.getElementById('timerInput').value = '';
-                addLiveNotification(`Timer set to ${minutes} minutes`, 'success');
+            const timeString = document.getElementById('timerInput').value; // e.g., "14:30"
+            if (timeString) {
+                const [hoursStr, minutesStr] = timeString.split(':');
+                const hours = parseInt(hoursStr || '0');
+                const minutes = parseInt(minutesStr || '0');
+                
+                const totalMinutes = (hours * 60) + minutes;
+
+                if (totalMinutes >= 0) { // Allow 0 to disable timer
+                    sendCommand('SET_TIMER', totalMinutes);
+                    document.getElementById('timerInput').value = '00:00'; // Reset to 00:00 after setting
+                    addLiveNotification(`Timer set to ${hours} hours and ${minutes} minutes`, 'success');
+                } else {
+                    addLiveNotification('Please enter a valid time (e.g., 01:30)', 'error');
+                }
             } else {
-                addLiveNotification('Please enter valid minutes (>= 0)', 'error');
+                addLiveNotification('Please enter a time for the timer (e.g., 01:30)', 'error');
             }
         }
 
