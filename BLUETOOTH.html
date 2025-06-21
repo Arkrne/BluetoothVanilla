@@ -773,7 +773,9 @@
                 <div class="section">
                     <div class="section-title">⏰ Timer Control</div>
                     <div class="input-group">
-                        <input type="time" id="timerInput" class="input-field" value="00:00"> <button class="btn btn-primary" onclick="setTimer()" id="timerBtn">Set Timer</button>
+                        <input type="number" id="timerHoursInput" class="input-field" placeholder="Hours" min="0" max="23" value="0">
+                        <input type="number" id="timerMinutesInput" class="input-field" placeholder="Minutes" min="0" max="59" value="0" step="1">
+                        <button class="btn btn-primary" onclick="setTimer()" id="timerBtn">Set Timer</button>
                     </div>
                     <div id="remainingTimerDisplay" class="budget-time-display" style="display:none;">
                         <span class="label">Time Remaining</span>
@@ -1335,23 +1337,28 @@
         }
 
         function setTimer() {
-            const timeString = document.getElementById('timerInput').value; // e.g., "14:30"
-            if (timeString) {
-                const [hoursStr, minutesStr] = timeString.split(':');
-                const hours = parseInt(hoursStr || '0');
-                const minutes = parseInt(minutesStr || '0');
-                
-                const totalMinutes = (hours * 60) + minutes;
+            const hoursStr = document.getElementById('timerHoursInput').value;
+            const minutesStr = document.getElementById('timerMinutesInput').value;
+            
+            const hours = parseInt(hoursStr || '0');
+            const minutes = parseInt(minutesStr || '0');
+            
+            // Check for valid number inputs
+            if (isNaN(hours) || isNaN(minutes) || hours < 0 || minutes < 0 || minutes > 59) {
+                addLiveNotification('Please enter valid hours (0-23) and minutes (0-59) for the timer.', 'error');
+                return;
+            }
 
-                if (totalMinutes >= 0) { // Allow 0 to disable timer
-                    sendCommand('SET_TIMER', totalMinutes);
-                    document.getElementById('timerInput').value = '00:00'; // Reset to 00:00 after setting
-                    addLiveNotification(`Timer set to ${hours} hours and ${minutes} minutes`, 'success');
-                } else {
-                    addLiveNotification('Please enter a valid time (e.g., 01:30)', 'error');
-                }
+            const totalMinutes = (hours * 60) + minutes;
+
+            if (totalMinutes >= 0) { // Allow 0 to disable timer
+                sendCommand('SET_TIMER', totalMinutes);
+                document.getElementById('timerHoursInput').value = '0'; // Reset after setting
+                document.getElementById('timerMinutesInput').value = '0'; // Reset after setting
+                addLiveNotification(`Timer set for ${hours} hours and ${minutes} minutes`, 'success');
             } else {
-                addLiveNotification('Please enter a time for the timer (e.g., 01:30)', 'error');
+                // This branch theoretically unreachable with min="0" on inputs, but good for robustness
+                addLiveNotification('Please enter a valid duration for the timer.', 'error');
             }
         }
 
