@@ -429,10 +429,6 @@
             animation: pulse 2s infinite;
         }
 
-        .status-dot.green { background: var(--success-color); }
-        .status-dot.yellow { background: var(--warning-color); }
-        .status-dot.red { background: var(--error-color); }
-
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -892,6 +888,9 @@
         let currentChartPeriod = '24h';
         let currentChartType = 'power';
         let currentPower = 0; // Updated from Arduino data
+        // Schedules will now primarily be managed on the Arduino,
+        // but we'll keep a local copy to render the UI and send commands.
+        // We'll need a way to sync this local list with the Arduino's list later if needed.
         let schedules = JSON.parse(localStorage.getItem('schedules') || '[]');
         
         // BLE UUIDs (Multiple service support)
@@ -917,7 +916,7 @@
             initializeChart();
             loadSavedSettings();
             updateBLEConnectionStatus();
-            renderSchedules();
+            renderSchedules(); // Render schedules from local storage initially
             
             // Load saved kWh rate
             const savedRate = localStorage.getItem('kwhRate');
@@ -927,8 +926,10 @@
             
             addLiveNotification('System ready. Connect to BLE device to start monitoring.', 'info');
             
-            // Start checking schedules every 10 seconds
-            setInterval(checkAndExecuteSchedules, 10 * 1000); // Check every 10 seconds
+            // Removed client-side schedule checking, as Arduino now handles execution.
+            // The web app will only send schedules TO the Arduino.
+            // However, we still need to send the current time periodically!
+            setInterval(sendCurrentTime, 60 * 1000); // Send time every 1 minute
         });
 
         // Theme Management (no changes)
@@ -976,7 +977,7 @@
             }
         }
 
-        // BLE Connection Functions (no changes to connection flow)
+        // BLE Connection Functions (modified to send time on connect)
         async function connectBLE() {
             if (!navigator.bluetooth) {
                 showNotification('Web Bluetooth is not supported', 'error');
@@ -1035,6 +1036,14 @@
                 setButtonSuccess('connectBLEBtn', 'Connected');
                 document.getElementById('disconnectBLEBtn').style.display = 'inline-flex';
                 addLiveNotification(`✅ BLE connected to ${bleDevice.name || 'device'}`, 'success');
+                
+                // Send current time to Arduino immediately upon connection
+                await sendCurrentTime();
+
+                // (Optional: You could send a command to Arduino to list its schedules here
+                // if you want the web UI to reflect existing schedules on the device at connect)
+                // sendCommand('LIST_SCHEDULES'); 
+
                 generateEfficiencyTips();
 
             } catch (error) {
@@ -1082,7 +1091,6 @@
             const statusElement = document.getElementById('bleStatus');
             const statusDot = document.getElementById('bleStatusDot');
             const statusText = document.getElementById('bleStatusText');
-            // Schedules are now client-side, so they don't block control buttons here
             const controlButtons = ['onBtn', 'offBtn', 'budgetBtn', 'timerBtn', 'scheduleBtn', 'setKwhRateBtn', 'resetCostBtn', 'resetKwhBtn', 'resetTimeBtn', 'resetAllBtn'];
 
             if (status === null) {
@@ -1125,6 +1133,8 @@
                 const message = parts[1] || data; // Use second part if available, else full string
                 addLiveNotification(message, type);
             }
+            // (Optional: If you implement LIST_SCHEDULES command on Arduino, handle its response here)
+            // else if (data.startsWith('SCH:')) { /* handle schedule list from Arduino */ }
             else {
                 addLiveNotification(`Unrecognized data: ${data}`, 'warning');
             }
@@ -1337,102 +1347,120 @@
             }
         }
 
-        // --- Schedule Functions (Web-side control) ---
-        function addSchedule() {
+        // --- Schedule Functions (NOW INTERACTING WITH ARDUINO) ---
+        // This function sends a schedule to the Arduino
+        async function addSchedule() {
             const onTime = document.getElementById('scheduleOnTime').value; // e.g., "08:30"
             const offTime = document.getElementById('scheduleOffTime').value; // e.g., "17:00"
             
             if (onTime && offTime) {
-                const scheduleId = Date.now(); // Unique ID for the schedule
-                schedules.push({
-                    id: scheduleId,
-                    onTime: onTime,
-                    offTime: offTime,
-                    // These flags ensure a schedule only triggers once per day per type (ON/OFF)
-                    triggeredOn: '',  // Stores date string (YYYY-MM-DD) when ON command was last sent
-                    triggeredOff: '' // Stores date string (YYYY-MM-DD) when OFF command was last sent
-                });
-                
-                localStorage.setItem('schedules', JSON.stringify(schedules));
-                renderSchedules();
-                
-                document.getElementById('scheduleOnTime').value = '';
-                document.getElementById('scheduleOffTime').value = '';
-                addLiveNotification(`Schedule added: ${onTime} - ${offTime} (Client-side control)`, 'success');
+                if (!isBLEConnected) {
+                    addLiveNotification('Please connect to BLE device before adding schedules.', 'error');
+                    return;
+                }
+
+                // Format for Arduino: HH:MM,HH:MM
+                const scheduleCommand = `${onTime},${offTime}`;
+                try {
+                    // Send ADD_SCHEDULE command to Arduino
+                    await sendCommand('ADD_SCHEDULE', scheduleCommand);
+                    
+                    // On successful send, add to local storage and render UI
+                    // (We use Date.now() for a simple unique local ID; Arduino manages its own indices)
+                    const scheduleLocalId = Date.now();
+                    schedules.push({
+                        id: scheduleLocalId,
+                        onTime: onTime,
+                        offTime: offTime
+                    });
+                    localStorage.setItem('schedules', JSON.stringify(schedules));
+                    renderSchedules(); // Re-render local list
+                    
+                    document.getElementById('scheduleOnTime').value = '';
+                    document.getElementById('scheduleOffTime').value = '';
+                    addLiveNotification(`Schedule added and sent to device: ${onTime} - ${offTime}`, 'success');
+                } catch (error) {
+                    addLiveNotification(`Failed to send schedule to device: ${error.message}`, 'error');
+                }
             } else {
                 addLiveNotification('Please enter both start and end times for the schedule', 'error');
             }
         }
 
-        function deleteSchedule(scheduleId) {
-            schedules = schedules.filter(s => s.id !== scheduleId);
-            localStorage.setItem('schedules', JSON.stringify(schedules));
-            renderSchedules();
-            addLiveNotification('Schedule deleted (Client-side)', 'success');
+        // This function sends a delete command to the Arduino
+        // Note: Arduino uses an index to delete schedules.
+        // The web app needs to maintain its own index to match what's on Arduino or reload from Arduino.
+        // For simplicity, we'll keep the local array's index as the Arduino's index.
+        async function deleteSchedule(localIndex) { // Renamed from scheduleId to localIndex for clarity
+            if (!isBLEConnected) {
+                addLiveNotification('Please connect to BLE device before deleting schedules.', 'error');
+                return;
+            }
+
+            // Confirm deletion
+            if (!confirm(`Are you sure you want to delete the schedule at index ${localIndex}? This will delete it on the device.`)) {
+                return;
+            }
+
+            try {
+                // Send DEL_SCHEDULE command to Arduino using the index
+                await sendCommand('DEL_SCHEDULE', localIndex);
+                
+                // On successful deletion from Arduino, update local storage and re-render
+                schedules.splice(localIndex, 1); // Remove by index
+                localStorage.setItem('schedules', JSON.stringify(schedules));
+                renderSchedules(); // Re-render local list
+                
+                addLiveNotification(`Schedule at index ${localIndex} deleted from device and locally.`, 'success');
+            } catch (error) {
+                addLiveNotification(`Failed to delete schedule from device: ${error.message}`, 'error');
+            }
         }
 
+        // Renders the schedules from the local 'schedules' array.
+        // Note: This UI does not automatically refresh from Arduino.
+        // For full sync, Arduino would need a 'LIST_SCHEDULES' command and send its full list.
         function renderSchedules() {
             const scheduleList = document.getElementById('scheduleList');
             scheduleList.innerHTML = '';
             
-            schedules.forEach(schedule => {
+            if (schedules.length === 0) {
+                scheduleList.innerHTML = '<div class="notification notification-info">No schedules added yet.</div>';
+                return;
+            }
+
+            schedules.forEach((schedule, index) => { // Use index for deletion command
                 const item = document.createElement('div');
                 item.className = 'schedule-item';
+                // Display the index for the user, so they know which one to delete if necessary
                 item.innerHTML = `
-                    <span>${schedule.onTime} - ${schedule.offTime}</span>
-                    <button class="schedule-delete" onclick="deleteSchedule(${schedule.id})">Delete</button>
+                    <span>(Index ${index}) ${schedule.onTime} - ${schedule.offTime}</span>
+                    <button class="schedule-delete" onclick="deleteSchedule(${index})">Delete</button>
                 `;
                 scheduleList.appendChild(item);
             });
         }
 
-        function checkAndExecuteSchedules() {
-            if (!isBLEConnected) {
-                return; // Only execute schedules if BLE is connected
+        // This function now sends the current browser time (Unix timestamp) to the Arduino's RTC.
+        // The Arduino will then use its RTC for executing schedules.
+        async function sendCurrentTime() {
+            if (!isBLEConnected) return; // Only send if connected
+
+            const now = luxon.DateTime.local(); // Get current local time using Luxon
+            const unixTimestamp = now.toSeconds(); // Get Unix timestamp in seconds
+
+            try {
+                await sendCommand('SET_TIME', Math.floor(unixTimestamp));
+                addLiveNotification(`Device time synchronized to: ${now.toFormat('HH:mm:ss')}`, 'info');
+            } catch (error) {
+                console.error('Failed to send time sync command:', error);
+                addLiveNotification('Failed to sync device time.', 'error');
             }
-
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const currentDateString = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
-
-            schedules.forEach(schedule => {
-                const [onHourStr, onMinuteStr] = schedule.onTime.split(':');
-                const onHour = parseInt(onHourStr);
-                const onMinute = parseInt(onMinuteStr);
-
-                const [offHourStr, offMinuteStr] = schedule.offTime.split(':');
-                const offHour = parseInt(offHourStr);
-                const offMinute = parseInt(offMinuteStr);
-
-                // --- Handle ON Trigger ---
-                if (currentHour === onHour && currentMinute === onMinute) {
-                    if (schedule.triggeredOn !== currentDateString) { 
-                        sendCommand('ON');
-                        schedule.triggeredOn = currentDateString; 
-                        addLiveNotification(`Schedule ON triggered for ${schedule.onTime}`, 'info');
-                        localStorage.setItem('schedules', JSON.stringify(schedules)); 
-                    }
-                } 
-                // --- Handle OFF Trigger ---
-                else if (currentHour === offHour && currentMinute === offMinute) {
-                    if (schedule.triggeredOff !== currentDateString) { 
-                        sendCommand('OFF');
-                        schedule.triggeredOff = currentDateString; 
-                        addLiveNotification(`Schedule OFF triggered for ${schedule.offTime}`, 'info');
-                        localStorage.setItem('schedules', JSON.stringify(schedules)); 
-                    }
-                } 
-                // --- Reset Triggered Flags for Next Day ---
-                if (currentDateString !== schedule.triggeredOn && (currentHour > onHour || (currentHour === onHour && currentMinute > onMinute))) {
-                    schedule.triggeredOn = '';
-                }
-                if (currentDateString !== schedule.triggeredOff && (currentHour > offHour || (currentHour === offHour && currentMinute > offMinute))) {
-                    schedule.triggeredOff = '';
-                }
-            });
-            localStorage.setItem('schedules', JSON.stringify(schedules)); 
         }
+
+        // Removed the client-side checkAndExecuteSchedules function entirely.
+        // This logic now resides solely on the Arduino.
+        // function checkAndExecuteSchedules() { /* This function is no longer needed */ }
 
 
         // Chart Functions (no changes)
@@ -1556,7 +1584,7 @@
             document.getElementById('chartType').textContent = labels[nextIndex];
             
             chart.options.scales.y.title.text = labels[nextIndex];
-            updateChart();
+            chart.update();
         }
 
         // Usage Timer: Now primarily uses data from Arduino.
