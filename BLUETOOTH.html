@@ -32,6 +32,7 @@
             --shadow-color: rgba(0, 0, 0, 0.3);
         }
 
+        /* Universal Box-sizing for consistent layout */
         * {
             margin: 0;
             padding: 0;
@@ -42,9 +43,16 @@
         body {
             background: var(--primary-gradient);
             min-height: 100vh;
-            padding: 1rem;
+            padding: 1rem; /* Default padding for medium/large screens */
             color: var(--text-primary);
             transition: all 0.3s ease;
+        }
+
+        /* Adjust body padding for very small screens */
+        @media (max-width: 640px) { /* Tailwind's 'sm' breakpoint */
+            body {
+                padding: 0.25rem; /* Even smaller padding on very small devices */
+            }
         }
 
         .container {
@@ -52,10 +60,21 @@
             margin: 0 auto;
             background: var(--card-bg);
             border-radius: 1.5rem;
-            padding: 2rem;
+            padding: 2rem; /* Default padding for medium/large screens */
             box-shadow: 0 20px 40px var(--shadow-color);
             backdrop-filter: blur(10px);
             min-height: calc(100vh - 2rem);
+            display: flex; /* Ensure container itself is a flex container for its header/main-grid */
+            flex-direction: column; /* Stack children vertically */
+        }
+
+        /* Adjust container padding and border-radius for very small screens */
+        @media (max-width: 640px) {
+            .container {
+                padding: 0.75rem; /* Smaller internal padding for tight spaces */
+                border-radius: 0.75rem; /* Slightly smaller border-radius on small screens */
+                min-height: calc(100vh - 0.5rem); /* Adjust based on body padding */
+            }
         }
 
         .header {
@@ -65,13 +84,32 @@
         }
 
         .header h1 {
-            font-size: 3rem;
+            font-size: 3rem; /* Default large font size */
             font-weight: 800;
             background: linear-gradient(45deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin-bottom: 0.5rem;
+            line-height: 1.1; /* Reduce line height for large text on small screens */
+        }
+
+        .header p {
+            font-size: 1rem; /* Default subtitle size */
+            color: var(--text-secondary);
+        }
+
+        /* Adjust Header font sizes for smaller screens */
+        @media (max-width: 640px) {
+            .header h1 {
+                font-size: 1.8rem; /* Even smaller font size for phone screens */
+            }
+            .header p {
+                font-size: 0.85rem; /* Smaller subtitle */
+            }
+            .header {
+                margin-bottom: 1.5rem; /* Less space below header */
+            }
         }
 
         .header-controls {
@@ -80,6 +118,25 @@
             right: 0;
             display: flex;
             gap: 0.75rem;
+        }
+        /* Adjust header controls for smaller screens */
+        @media (max-width: 1024px) {
+            .header-controls {
+                position: static;
+                justify-content: center;
+                margin-top: 1rem;
+            }
+        }
+        @media (max-width: 640px) {
+            .header-controls {
+                gap: 0.5rem; /* Smaller gap between theme/fullscreen buttons */
+                margin-top: 0.75rem;
+            }
+            .header-btn {
+                width: 2.5rem; /* Slightly smaller buttons */
+                height: 2.5rem;
+                font-size: 1rem;
+            }
         }
 
         .header-btn {
@@ -105,28 +162,49 @@
 
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 2fr;
+            grid-template-columns: 1fr 2fr; /* Default 1:2 column layout for larger screens */
             gap: 2rem;
+            flex-grow: 1; /* Allow grid to grow and take available space */
         }
 
-        @media (max-width: 1024px) {
+        @media (max-width: 1024px) { /* This is your existing 'lg' breakpoint for grid stacking */
             .main-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr; /* Stacks columns into a single column on smaller screens */
+                gap: 1.5rem; /* Reduce gap when stacked */
             }
-            .header-controls {
-                position: static;
-                justify-content: center;
-                margin-top: 1rem;
+        }
+        @media (max-width: 640px) {
+             .main-grid {
+                gap: 1rem; /* Even smaller gap for very compact phone layout */
             }
         }
 
+
+        /* Styles for individual sections within the main grid */
         .section {
             background: var(--card-bg);
             border-radius: 1rem;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.5rem; /* Space between sections */
             border: 1px solid var(--border-color);
             box-shadow: 0 4px 15px var(--shadow-color);
+        }
+        /* Remove margin-bottom for the last section in each column to prevent extra space */
+        .left-column .section:last-child,
+        .right-column .section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Adjust section padding and margin for small screens */
+        @media (max-width: 640px) {
+            .section {
+                padding: 1rem; /* Reduce section padding */
+                margin-bottom: 1rem; /* Reduce space between sections */
+                border-radius: 0.75rem; /* Slightly smaller border-radius */
+            }
+            .section-title {
+                font-size: 1rem; /* Even smaller titles */
+            }
         }
 
         .section-title {
@@ -141,9 +219,17 @@
 
         .status-panel {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Automatically fits cards, min 200px wide */
             gap: 1rem;
             margin-bottom: 2rem;
+        }
+
+        /* Adjust status panel card size for very small screens */
+        @media (max-width: 640px) {
+            .status-panel {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* Allow cards to be smaller to fit more in a row */
+                gap: 0.5rem; /* Smaller gap between cards */
+            }
         }
 
         .metric-card {
@@ -153,6 +239,19 @@
             border-radius: 1rem;
             text-align: center;
             transition: transform 0.2s ease;
+        }
+
+        /* Adjust metric card sizes for small screens */
+        @media (max-width: 640px) {
+            .metric-card {
+                padding: 0.75rem; /* Smaller padding inside cards */
+            }
+            .metric-value {
+                font-size: 1.25rem; /* Smaller metric values to fit better */
+            }
+            .metric-label, .metric-unit {
+                font-size: 0.7rem; /* Smaller labels and units */
+            }
         }
 
         .metric-card:hover {
@@ -187,7 +286,16 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            min-width: 120px;
+            min-width: 120px; /* Ensures a minimum width for buttons */
+        }
+
+        /* Adjust button sizes for small screens */
+        @media (max-width: 640px) {
+            .btn {
+                padding: 0.5rem 0.8rem; /* Smaller padding for buttons */
+                min-width: unset; /* Allow buttons to shrink/expand more flexibly */
+                font-size: 0.8rem;
+            }
         }
 
         .btn-primary { background: var(--primary-gradient); color: white; }
@@ -221,6 +329,14 @@
             transition: border-color 0.3s ease;
         }
 
+        /* Adjust input field sizes for small screens */
+        @media (max-width: 640px) {
+            .input-field {
+                padding: 0.5rem; /* Smaller padding for input fields */
+                font-size: 0.85rem;
+            }
+        }
+
         .input-field:focus {
             outline: none;
             border-color: #667eea;
@@ -231,11 +347,18 @@
             display: flex;
             gap: 0.75rem;
             margin-bottom: 1rem;
-            flex-wrap: wrap;
+            flex-wrap: wrap; /* Allows items to wrap to next line if space is limited */
+        }
+
+        /* Adjust control group spacing for small screens */
+        @media (max-width: 640px) {
+            .control-group {
+                gap: 0.5rem; /* Smaller gap for controls */
+            }
         }
 
         .control-group .btn {
-            flex: 1;
+            flex: 1; /* Distributes space among buttons */
         }
 
         .input-group {
@@ -243,6 +366,15 @@
             gap: 0.75rem;
             margin-bottom: 1rem;
             align-items: center;
+        }
+
+        /* Stack input fields and buttons vertically on small screens */
+        @media (max-width: 640px) {
+            .input-group {
+                flex-direction: column; /* Stack inputs and buttons vertically */
+                align-items: stretch; /* Stretch items to full width */
+                gap: 0.5rem; /* Smaller gap when stacked */
+            }
         }
 
         .input-group .input-field {
@@ -257,6 +389,19 @@
             align-items: center;
             gap: 0.75rem;
             font-weight: 600;
+        }
+
+        /* Adjust connection status element for small screens */
+        @media (max-width: 640px) {
+            .connection-status {
+                padding: 0.6rem;
+                font-size: 0.8rem;
+                gap: 0.5rem;
+            }
+            .status-dot {
+                width: 10px;
+                height: 10px;
+            }
         }
 
         .connection-status.connected {
@@ -295,15 +440,23 @@
 
         .chart-container {
             position: relative;
-            height: 400px;
+            height: 400px; /* Fixed height for chart, responsive width is handled by parent */
             margin: 1rem 0;
+        }
+        /* Adjust chart height for small screens */
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 250px; /* Shorter chart on small screens to save vertical space */
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+            }
         }
 
         .chart-controls {
             display: flex;
             gap: 0.5rem;
             margin-bottom: 1rem;
-            flex-wrap: wrap;
+            flex-wrap: wrap; /* Allows buttons to wrap */
         }
 
         .chart-btn {
@@ -316,6 +469,14 @@
             transition: all 0.3s ease;
         }
 
+        /* Adjust chart button sizes for small screens */
+        @media (max-width: 640px) {
+            .chart-btn {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.75rem;
+            }
+        }
+
         .chart-btn.active,
         .chart-btn:hover {
             background: var(--primary-gradient);
@@ -325,7 +486,13 @@
 
         .notifications-panel {
             max-height: 300px;
-            overflow-y: auto;
+            overflow-y: auto; /* Ensures scrollability if content overflows */
+        }
+        /* Adjust notifications panel height for small screens */
+        @media (max-width: 640px) {
+            .notifications-panel {
+                max-height: 150px; /* Shorter notifications list on small screens */
+            }
         }
 
         .notification {
@@ -333,6 +500,14 @@
             border-radius: 0.5rem;
             margin-bottom: 0.5rem;
             border-left: 4px solid;
+        }
+
+        /* Adjust notification text for small screens */
+        @media (max-width: 640px) {
+            .notification {
+                font-size: 0.8rem;
+                padding: 0.5rem;
+            }
         }
 
         .notification-info {
@@ -349,8 +524,8 @@
 
         .notification-warning {
             background: rgba(237, 137, 54, 0.1);
-            border-color: var(--warning-color);
             color: var(--warning-color);
+            border-color: var(--warning-color);
         }
 
         .notification-error {
@@ -366,6 +541,19 @@
             color: white;
             border-radius: 1rem;
             margin-bottom: 1.5rem;
+        }
+
+        /* Adjust usage tracker for small screens */
+        @media (max-width: 640px) {
+            .usage-tracker {
+                padding: 1rem;
+            }
+            .usage-time {
+                font-size: 2rem;
+            }
+            .usage-tracker #usageStatus {
+                font-size: 0.85rem;
+            }
         }
 
         .usage-time {
@@ -413,6 +601,18 @@
             margin-bottom: 0.5rem;
         }
 
+        /* Adjust schedule list items for small screens */
+        @media (max-width: 640px) {
+            .schedule-item {
+                font-size: 0.85rem;
+                padding: 0.4rem;
+            }
+            .schedule-delete {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.65rem;
+            }
+        }
+
         .schedule-delete {
             background: var(--error-color);
             color: white;
@@ -439,6 +639,13 @@
             font-weight: 700;
             text-align: center;
         }
+        /* Adjust power alert overlay for small screens */
+        @media (max-width: 640px) {
+            .power-alert {
+                font-size: 1.25rem;
+                padding: 0.5rem;
+            }
+        }
 
         .power-alert.show {
             display: flex;
@@ -457,11 +664,56 @@
             margin-bottom: 0.5rem;
             border-left: 4px solid var(--info-color);
         }
+
+        /* Adjust tips list items for small screens */
+        @media (max-width: 640px) {
+            .tips-list li {
+                font-size: 0.8rem;
+                padding: 0.5rem;
+            }
+        }
+
+        /* New styles for remaining budget/time display */
+        .budget-time-display {
+            background: rgba(118, 75, 162, 0.1); /* Lighter version of primary gradient color */
+            border: 1px solid var(--primary-gradient);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 0.75rem; /* Smaller margin-top to fit better */
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .budget-time-display .label {
+            font-size: 0.8rem; /* Smaller label for phone */
+            color: var(--text-secondary);
+        }
+        .budget-time-display .value {
+            font-size: 1.25rem; /* Smaller value text for phone */
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        /* Adjust for very small screens */
+        @media (max-width: 640px) {
+            .budget-time-display {
+                padding: 0.6rem;
+                margin-top: 0.5rem;
+                border-radius: 0.5rem;
+            }
+            .budget-time-display .label {
+                font-size: 0.75rem;
+            }
+            .budget-time-display .value {
+                font-size: 1.1rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <h1>🔌 Vanilla 3000</h1>
             <p>Smart Energy Monitor & Control Panel</p>
@@ -471,16 +723,12 @@
             </div>
         </div>
 
-        <!-- Bluetooth Warning -->
         <div id="bluetoothWarning" class="bluetooth-warning hidden">
             Web Bluetooth is not supported in this browser or the page is not served over HTTPS. Please use Chrome, Edge, or Opera with HTTPS.
         </div>
 
-        <!-- Main Grid -->
         <div class="main-grid">
-            <!-- Left Column: Controls -->
             <div class="left-column">
-                <!-- Bluetooth Connection -->
                 <div class="section" id="bleConfigSection">
                     <div class="section-title">📡 Bluetooth (BLE) Control (Local)</div>
                     <div class="config-info">
@@ -499,7 +747,6 @@
                     </div>
                 </div>
 
-                <!-- Energy Rate Configuration -->
                 <div class="section">
                     <div class="section-title">⚡ Energy Rate Configuration</div>
                     <div class="input-group">
@@ -508,7 +755,6 @@
                     </div>
                 </div>
 
-                <!-- Device Control -->
                 <div class="section">
                     <div class="section-title">🎛️ Device Control</div>
                     <div class="control-group">
@@ -517,25 +763,30 @@
                     </div>
                 </div>
 
-                <!-- Budget Control -->
                 <div class="section">
                     <div class="section-title">💰 Budget Control</div>
                     <div class="input-group">
                         <input type="number" id="budgetInput" class="input-field" placeholder="Amount in ₱" min="0" step="0.01">
                         <button class="btn btn-primary" onclick="setBudget()" id="budgetBtn">Set Budget</button>
                     </div>
+                    <div id="remainingBudgetDisplay" class="budget-time-display" style="display:none;">
+                        <span class="label">Remaining Budget</span>
+                        <span class="value" id="remainingBudget">₱0.00</span>
+                    </div>
                 </div>
 
-                <!-- Timer Control -->
                 <div class="section">
                     <div class="section-title">⏰ Timer Control</div>
                     <div class="input-group">
                         <input type="number" id="timerInput" class="input-field" placeholder="Minutes" min="0" step="1">
                         <button class="btn btn-primary" onclick="setTimer()" id="timerBtn">Set Timer</button>
                     </div>
+                    <div id="remainingTimerDisplay" class="budget-time-display" style="display:none;">
+                        <span class="label">Time Remaining</span>
+                        <span class="value" id="remainingTimer">00:00:00</span>
+                    </div>
                 </div>
 
-                <!-- Schedule Control -->
                 <div class="section">
                     <div class="section-title">📅 Schedule Control</div>
                     <div class="input-group">
@@ -546,7 +797,6 @@
                     <div id="scheduleList"></div>
                 </div>
 
-                <!-- Reset Functions -->
                 <div class="section">
                     <div class="section-title">🔄 Reset Functions</div>
                     <div class="control-group">
@@ -560,9 +810,7 @@
                 </div>
             </div>
 
-            <!-- Right Column: Data Display -->
             <div class="right-column">
-                <!-- Live Metrics -->
                 <div class="status-panel">
                     <div class="metric-card">
                         <div class="metric-label">Voltage</div>
@@ -591,13 +839,11 @@
                     </div>
                 </div>
 
-                <!-- Usage Time Tracker -->
                 <div class="usage-tracker">
                     <div class="usage-time" id="usageTime">00:00:00</div>
                     <div id="usageStatus">Active when power > 5W</div>
                 </div>
 
-                <!-- Energy Usage Chart -->
                 <div class="section">
                     <div class="section-title">📊 Energy Usage Chart</div>
                     <div class="chart-controls">
@@ -611,13 +857,11 @@
                     </div>
                 </div>
 
-                <!-- Live Notifications -->
                 <div class="section">
                     <div class="section-title">🔔 Live Notifications</div>
                     <div class="notifications-panel" id="notificationsList"></div>
                 </div>
 
-                <!-- Energy Efficiency Tips -->
                 <div class="section">
                     <div class="section-title">💡 Energy Efficiency Tips</div>
                     <ul class="tips-list" id="tipsList">
@@ -630,7 +874,6 @@
         </div>
     </div>
 
-    <!-- Power Alert Overlays -->
     <div id="powerOutageAlert" class="power-alert">
         ⚡ POWER OUTAGE!<br>Device monitoring interrupted
     </div>
@@ -648,8 +891,7 @@
         let isDarkMode = localStorage.getItem('darkMode') === 'true';
         let currentChartPeriod = '24h';
         let currentChartType = 'power';
-        let usageStartTime = null;
-        let currentPower = 0;
+        let currentPower = 0; // Updated from Arduino data
         let schedules = JSON.parse(localStorage.getItem('schedules') || '[]');
         
         // BLE UUIDs (Multiple service support)
@@ -676,7 +918,6 @@
             loadSavedSettings();
             updateBLEConnectionStatus();
             renderSchedules();
-            startUsageTimer();
             
             // Load saved kWh rate
             const savedRate = localStorage.getItem('kwhRate');
@@ -685,9 +926,12 @@
             }
             
             addLiveNotification('System ready. Connect to BLE device to start monitoring.', 'info');
+            
+            // Start checking schedules every 10 seconds
+            setInterval(checkAndExecuteSchedules, 10 * 1000); // Check every 10 seconds
         });
 
-        // Theme Management
+        // Theme Management (no changes)
         function initializeTheme() {
             if (isDarkMode) {
                 document.documentElement.setAttribute('data-theme', 'dark');
@@ -710,7 +954,7 @@
             }
         }
 
-        // Bluetooth Support Check
+        // Bluetooth Support Check (no changes)
         function checkBluetoothSupport() {
             const warning = document.getElementById('bluetoothWarning');
             const connectBtn = document.getElementById('connectBLEBtn');
@@ -732,7 +976,7 @@
             }
         }
 
-        // BLE Connection Functions
+        // BLE Connection Functions (no changes to connection flow)
         async function connectBLE() {
             if (!navigator.bluetooth) {
                 showNotification('Web Bluetooth is not supported', 'error');
@@ -838,6 +1082,7 @@
             const statusElement = document.getElementById('bleStatus');
             const statusDot = document.getElementById('bleStatusDot');
             const statusText = document.getElementById('bleStatusText');
+            // Schedules are now client-side, so they don't block control buttons here
             const controlButtons = ['onBtn', 'offBtn', 'budgetBtn', 'timerBtn', 'scheduleBtn', 'setKwhRateBtn', 'resetCostBtn', 'resetKwhBtn', 'resetTimeBtn', 'resetAllBtn'];
 
             if (status === null) {
@@ -864,7 +1109,7 @@
             }
         }
 
-        // BLE Data Handling
+        // BLE Data Handling (added handling for INFO/ERROR messages from Arduino)
         function onBLECharacteristicValueChanged(event) {
             const decoder = new TextDecoder();
             const data = decoder.decode(event.target.value).trim();
@@ -874,14 +1119,20 @@
                 handleAlert(data);
             } else if (data.includes('V:') && data.includes('I:')) {
                 parseSensorData(data);
-            } else {
+            } else if (data.startsWith('INFO:') || data.startsWith('ERROR:')) { // Handle generic info/error messages
+                const parts = data.split('|');
+                const type = parts[0].substring(0, parts[0].indexOf(':')).toLowerCase(); // 'info' or 'error'
+                const message = parts[1] || data; // Use second part if available, else full string
+                addLiveNotification(message, type);
+            }
+            else {
                 addLiveNotification(`Unrecognized data: ${data}`, 'warning');
             }
         }
 
         function parseSensorData(data) {
             try {
-                // Parse format: V:230.5,I:1.23,P:283.0,KWH:1.456,COST:15.23,RUNTIME:3.45,STATUS:ON
+                // Parse format: V:230.5,I:1.23,P:283.0,KWH:1.456,COST:15.23,RUNTIME:3.45,STATUS:ON,REM_TIME:300,REM_BUDGET:50.25
                 const metrics = {};
                 const pairs = data.split(',');
                 
@@ -909,6 +1160,12 @@
                                 break;
                             case 'STATUS':
                                 metrics.status = value.trim();
+                                break;
+                            case 'REM_TIME': // New: Remaining Timer Time (in seconds)
+                                metrics.remainingTime = parseInt(value);
+                                break;
+                            case 'REM_BUDGET': // New: Remaining Budget Amount
+                                metrics.remainingBudget = parseFloat(value);
                                 break;
                         }
                     }
@@ -948,7 +1205,7 @@
             }
             if (data.power !== undefined) {
                 document.getElementById('power').textContent = data.power.toFixed(1);
-                currentPower = data.power;
+                currentPower = data.power; // Update global currentPower for efficiency tips
             }
             if (data.kwh !== undefined) {
                 document.getElementById('energy').textContent = data.kwh.toFixed(3);
@@ -959,9 +1216,61 @@
             if (data.status !== undefined) {
                 document.getElementById('usageStatus').textContent = `Device: ${data.status}`;
             }
+
+            // Update usage time using RUNTIME from Arduino
+            if (data.runtime !== undefined) {
+                const totalSeconds = parseInt(data.runtime);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                document.getElementById('usageTime').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            // New: Update Remaining Timer Display
+            const remainingTimerDisplay = document.getElementById('remainingTimerDisplay');
+            const remainingTimerValue = document.getElementById('remainingTimer');
+            if (data.remainingTime !== undefined) {
+                if (data.remainingTime > 0) {
+                    const totalSeconds = data.remainingTime;
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+                    remainingTimerValue.textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    remainingTimerDisplay.style.display = 'flex'; // Show the display
+                } else {
+                    remainingTimerDisplay.style.display = 'none'; // Hide if timer is 0 or inactive
+                    remainingTimerValue.textContent = '00:00:00'; // Reset display
+                }
+            } else {
+                remainingTimerDisplay.style.display = 'none'; // Hide if no data
+            }
+
+            // New: Update Remaining Budget Display
+            const remainingBudgetDisplay = document.getElementById('remainingBudgetDisplay');
+            const remainingBudget = document.getElementById('remainingBudget');
+            // Check if budgetActive on Arduino side. If remainingBudget comes as 0 but budgetActive is true
+            // we might still want to show ₱0.00 to indicate it's active but exhausted.
+            // For simplicity, hiding if <= 0.01 makes sense for "remaining".
+            if (data.remainingBudget !== undefined) {
+                if (data.remainingBudget > 0.01) { // Show if there's a significant positive remaining budget
+                    remainingBudget.textContent = `₱${data.remainingBudget.toFixed(2)}`;
+                    remainingBudgetDisplay.style.display = 'flex'; // Show the display
+                } else if (data.remainingBudget <= 0.01 && data.budgetActive) { // If budget is active but exhausted
+                    remainingBudget.textContent = `₱0.00`;
+                    remainingBudgetDisplay.style.display = 'flex'; // Still show as exhausted
+                }
+                else {
+                    remainingBudgetDisplay.style.display = 'none'; // Hide if budget is 0 or negative
+                    remainingBudget.textContent = `₱0.00`; // Reset display
+                }
+            } else {
+                remainingBudgetDisplay.style.display = 'none'; // Hide if no data
+            }
         }
 
-        // Command Sending
+        // Command Sending (no changes)
         async function sendCommand(action, value = null) {
             if (!isBLEConnected || !bleRxCharacteristic) {
                 addLiveNotification('Not connected to BLE device', 'error');
@@ -978,6 +1287,7 @@
                 const encoder = new TextEncoder();
                 const data = encoder.encode(command);
 
+                // Use writeValueWithoutResponse if available and desired for speed
                 if (bleRxCharacteristic.properties.writeWithoutResponse) {
                     await bleRxCharacteristic.writeValueWithoutResponse(data);
                 } else {
@@ -993,7 +1303,7 @@
             }
         }
 
-        // Configuration Functions
+        // Configuration Functions (no changes, still send to Arduino)
         function setKwhRate() {
             const rate = document.getElementById('kwhRateInput').value;
             if (rate && rate > 0) {
@@ -1007,42 +1317,40 @@
 
         function setBudget() {
             const budget = document.getElementById('budgetInput').value;
-            if (budget && budget > 0) {
+            if (budget && budget >= 0) { // Allow 0 to disable budget
                 sendCommand('SET_BUDGET', budget);
                 document.getElementById('budgetInput').value = '';
                 addLiveNotification(`Budget set to ₱${budget}`, 'success');
             } else {
-                addLiveNotification('Please enter a valid budget amount', 'error');
+                addLiveNotification('Please enter a valid budget amount (>= 0)', 'error');
             }
         }
 
         function setTimer() {
             const minutes = document.getElementById('timerInput').value;
-            if (minutes && minutes > 0) {
+            if (minutes && minutes >= 0) { // Allow 0 to disable timer
                 sendCommand('SET_TIMER', minutes);
                 document.getElementById('timerInput').value = '';
                 addLiveNotification(`Timer set to ${minutes} minutes`, 'success');
             } else {
-                addLiveNotification('Please enter valid minutes', 'error');
+                addLiveNotification('Please enter valid minutes (>= 0)', 'error');
             }
         }
 
+        // --- Schedule Functions (Web-side control) ---
         function addSchedule() {
-            const onTime = document.getElementById('scheduleOnTime').value;
-            const offTime = document.getElementById('scheduleOffTime').value;
+            const onTime = document.getElementById('scheduleOnTime').value; // e.g., "08:30"
+            const offTime = document.getElementById('scheduleOffTime').value; // e.g., "17:00"
             
             if (onTime && offTime) {
-                const scheduleId = Date.now();
-                const onTimeFormatted = onTime.replace(':', '');
-                const offTimeFormatted = offTime.replace(':', '');
-                const scheduleValue = `${scheduleId},${onTimeFormatted},${offTimeFormatted}`;
-                
-                sendCommand('ADD_SCHEDULE', scheduleValue);
-                
+                const scheduleId = Date.now(); // Unique ID for the schedule
                 schedules.push({
                     id: scheduleId,
                     onTime: onTime,
-                    offTime: offTime
+                    offTime: offTime,
+                    // These flags ensure a schedule only triggers once per day per type (ON/OFF)
+                    triggeredOn: '',  // Stores date string (YYYY-MM-DD) when ON command was last sent
+                    triggeredOff: '' // Stores date string (YYYY-MM-DD) when OFF command was last sent
                 });
                 
                 localStorage.setItem('schedules', JSON.stringify(schedules));
@@ -1050,18 +1358,17 @@
                 
                 document.getElementById('scheduleOnTime').value = '';
                 document.getElementById('scheduleOffTime').value = '';
-                addLiveNotification(`Schedule added: ${onTime} - ${offTime}`, 'success');
+                addLiveNotification(`Schedule added: ${onTime} - ${offTime} (Client-side control)`, 'success');
             } else {
-                addLiveNotification('Please enter both start and end times', 'error');
+                addLiveNotification('Please enter both start and end times for the schedule', 'error');
             }
         }
 
         function deleteSchedule(scheduleId) {
-            sendCommand('DELETE_SCHEDULE', scheduleId);
             schedules = schedules.filter(s => s.id !== scheduleId);
             localStorage.setItem('schedules', JSON.stringify(schedules));
             renderSchedules();
-            addLiveNotification('Schedule deleted', 'success');
+            addLiveNotification('Schedule deleted (Client-side)', 'success');
         }
 
         function renderSchedules() {
@@ -1079,7 +1386,56 @@
             });
         }
 
-        // Chart Functions
+        function checkAndExecuteSchedules() {
+            if (!isBLEConnected) {
+                return; // Only execute schedules if BLE is connected
+            }
+
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentDateString = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+            schedules.forEach(schedule => {
+                const [onHourStr, onMinuteStr] = schedule.onTime.split(':');
+                const onHour = parseInt(onHourStr);
+                const onMinute = parseInt(onMinuteStr);
+
+                const [offHourStr, offMinuteStr] = schedule.offTime.split(':');
+                const offHour = parseInt(offHourStr);
+                const offMinute = parseInt(offMinuteStr);
+
+                // --- Handle ON Trigger ---
+                if (currentHour === onHour && currentMinute === onMinute) {
+                    if (schedule.triggeredOn !== currentDateString) { 
+                        sendCommand('ON');
+                        schedule.triggeredOn = currentDateString; 
+                        addLiveNotification(`Schedule ON triggered for ${schedule.onTime}`, 'info');
+                        localStorage.setItem('schedules', JSON.stringify(schedules)); 
+                    }
+                } 
+                // --- Handle OFF Trigger ---
+                else if (currentHour === offHour && currentMinute === offMinute) {
+                    if (schedule.triggeredOff !== currentDateString) { 
+                        sendCommand('OFF');
+                        schedule.triggeredOff = currentDateString; 
+                        addLiveNotification(`Schedule OFF triggered for ${schedule.offTime}`, 'info');
+                        localStorage.setItem('schedules', JSON.stringify(schedules)); 
+                    }
+                } 
+                // --- Reset Triggered Flags for Next Day ---
+                if (currentDateString !== schedule.triggeredOn && (currentHour > onHour || (currentHour === onHour && currentMinute > onMinute))) {
+                    schedule.triggeredOn = '';
+                }
+                if (currentDateString !== schedule.triggeredOff && (currentHour > offHour || (currentHour === offHour && currentMinute > offMinute))) {
+                    schedule.triggeredOff = '';
+                }
+            });
+            localStorage.setItem('schedules', JSON.stringify(schedules)); 
+        }
+
+
+        // Chart Functions (no changes)
         function initializeChart() {
             const ctx = document.getElementById('usageChart').getContext('2d');
             
@@ -1096,13 +1452,13 @@
                         fill: true
                     }, {
                         label: 'Peak Usage',
-                        data: [],
+                        data: [], // This dataset is unused in your current data stream
                         borderColor: '#f56565',
                         backgroundColor: 'rgba(245, 101, 101, 0.1)',
                         tension: 0.4
                     }, {
                         label: 'Average',
-                        data: [],
+                        data: [], // This dataset is unused in your current data stream
                         borderColor: '#48bb78',
                         backgroundColor: 'rgba(72, 187, 120, 0.1)',
                         tension: 0.4
@@ -1203,28 +1559,12 @@
             updateChart();
         }
 
-        // Usage Timer
+        // Usage Timer: Now primarily uses data from Arduino.
         function startUsageTimer() {
-            setInterval(() => {
-                if (currentPower > 5) {
-                    if (!usageStartTime) {
-                        usageStartTime = Date.now();
-                    }
-                    
-                    const elapsed = Date.now() - usageStartTime;
-                    const hours = Math.floor(elapsed / 3600000);
-                    const minutes = Math.floor((elapsed % 3600000) / 60000);
-                    const seconds = Math.floor((elapsed % 60000) / 1000);
-                    
-                    document.getElementById('usageTime').textContent = 
-                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                } else {
-                    usageStartTime = null;
-                }
-            }, 1000);
+            // No direct client-side timer needed here, `updateMetrics` updates the UI element.
         }
 
-        // Notifications
+        // Notifications (minor adjustment for schedule messages)
         function addLiveNotification(message, type) {
             const notificationsList = document.getElementById('notificationsList');
             const notification = document.createElement('div');
@@ -1242,7 +1582,6 @@
         }
 
         function showNotification(message, type) {
-            // This could be used for temporary toast notifications
             console.log(`${type.toUpperCase()}: ${message}`);
         }
 
@@ -1255,7 +1594,7 @@
             }, 3000);
         }
 
-        // Efficiency Tips
+        // Efficiency Tips (updated for client-side schedules)
         function generateEfficiencyTips() {
             const tipsList = document.getElementById('tipsList');
             const tips = [];
@@ -1271,8 +1610,8 @@
                     tips.push('Detected potential phantom load. Unplug devices not in use!');
                 }
                 
-                if (schedules.length === 0) {
-                    tips.push('Set up schedules to automatically control your devices and save energy.');
+                if (schedules.length === 0) { // Check client-side schedules array
+                    tips.push('Set up schedules (on this page) to automatically control your devices and save energy.');
                 }
                 
                 tips.push('Setting a budget helps track and manage your energy costs.');
@@ -1287,7 +1626,7 @@
             });
         }
 
-        // Button State Management
+        // Button State Management (no changes)
         function setButtonLoading(buttonId, loading, text) {
             const button = document.getElementById(buttonId);
             if (loading) {
@@ -1331,7 +1670,6 @@
         }
 
         function loadSavedSettings() {
-            // This function can load any additional saved settings
             console.log('Loading saved settings...');
         }
     </script>
